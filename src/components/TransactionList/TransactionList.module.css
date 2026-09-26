@@ -1,0 +1,126 @@
+/* Контейнер списка транзакций */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* Строка транзакции */
+.row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: var(--spacing-md);
+  align-items: center;
+  padding: var(--spacing-md);
+  background-color: var(--bg-secondary);
+  border-radius: var(--border-radius-md);
+  transition: all 0.2s ease;
+}
+
+.row:hover {
+  background-color: var(--bg-tertiary);
+  transform: translateX(4px);
+}
+
+/* Иконка категории */
+.categoryIcon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-primary);
+  border-radius: var(--border-radius-md);
+  font-size: 20px;
+}
+
+/* Информация о транзакции */
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+/* Категория */
+.category {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Комментарий */
+.comment {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+/* Дата */
+.date {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+
+/* Сумма */
+.amount {
+  font-weight: 600;
+  font-size: var(--font-size-lg);
+  white-space: nowrap;
+}
+
+/* Цвета для доходов и расходов */
+.income {
+  color: var(--color-success);
+}
+
+.expense {
+  color: var(--color-danger);
+}
+
+/* Кнопки действий */
+.actions {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.actionButton {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--border-radius-sm);
+  color: var(--text-secondary);
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.actionButton:hover {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.deleteButton:hover {
+  color: var(--color-danger);
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+  .row {
+    grid-template-columns: auto 1fr;
+    gap: var(--spacing-sm);
+  }
+  
+  .date {
+    grid-column: 2;
+    justify-self: start;
+  }
+  
+  .amount {
+    grid-column: 2;
+    justify-self: start;
+  }
+  
+  .actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+}

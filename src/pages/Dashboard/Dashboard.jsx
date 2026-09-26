@@ -1,62 +1,116 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import BalanceCard from '../../components/BalanceCard/BalanceCard';
+import EmptyState from '../../components/EmptyState/EmptyState';
+import TransactionList from '../../components/TransactionList/TransactionList';
+import Modal from '../../components/Modal/Modal';
+import TransactionForm from '../../components/TransactionForm/TransactionForm';
+import { getCurrentMonthBalance, getRecentTransactions } from '../../services/summaryService';
+import { addIncome, updateIncome, deleteIncome } from '../../services/incomeService';
+import { addExpense, updateExpense, deleteExpense } from '../../services/expenseService';
 import styles from './Dashboard.module.css';
 
-// Временная заглушка для BalanceCard (будет заменена на реальный компонент)
-const BalanceCardPlaceholder = ({ title, amount, color }) => (
-  <div style={{
-    backgroundColor: 'white',
-    padding: '24px',
-    borderRadius: '12px',
-    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-    borderLeft: `4px solid ${color || '#2563eb'}`
-  }}>
-    <div style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>
-      {title || 'Заголовок'}
-    </div>
-    <div style={{ fontSize: '32px', fontWeight: '700', color: '#111827' }}>
-      {amount ?? 0} ₽
-    </div>
-  </div>
-);
-
-// Временная заглушка для EmptyState (будет заменена на реальный компонент)
-const EmptyStatePlaceholder = () => (
-  <div style={{
-    textAlign: 'center',
-    padding: '48px 24px',
-    color: '#6b7280'
-  }}>
-    <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
-    <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px', color: '#111827' }}>
-      Нет операций
-    </h3>
-    <p style={{ marginBottom: '24px' }}>
-      Добавьте первую операцию, чтобы начать отслеживать финансы
-    </p>
-  </div>
-);
-
 function Dashboard() {
+  // Состояние данных
+  const [balance, setBalance] = useState({ totalIncome: 0, totalExpense: 0, balance: 0 });
+  const [recentTransactions, setRecentTransactions] = useState([]);
+  
+  // Состояние модалки
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState(null);
+
+  // Загрузка данных
+  const loadData = useCallback(() => {
+    const monthBalance = getCurrentMonthBalance();
+    setBalance(monthBalance ?? { totalIncome: 0, totalExpense: 0, balance: 0 });
+    
+    const recent = getRecentTransactions(5);
+    setRecentTransactions(Array.isArray(recent) ? recent : []);
+  }, []);
+
+  // Первоначальная загрузка
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Открытие модалки для добавления
+  const handleOpenAdd = () => {
+    setEditingTransaction(null);
+    setIsModalOpen(true);
+  };
+
+  // Открытие модалки для редактирования
+  const handleEdit = (transaction) => {
+    setEditingTransaction(transaction);
+    setIsModalOpen(true);
+  };
+
+  // Закрытие модалки
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingTransaction(null);
+  };
+
+  // Обработка отправки формы (добавление или редактирование)
+  const handleSubmit = (formData) => {
+    if (editingTransaction) {
+      // Режим редактирования
+      if (editingTransaction.type === 'income') {
+        updateIncome(editingTransaction.id, formData);
+      } else {
+        updateExpense(editingTransaction.id, formData);
+      }
+    } else {
+      // Режим добавления
+      if (formData.type === 'income') {
+        addIncome(formData);
+      } else {
+        addExpense(formData);
+      }
+    }
+    
+    handleCloseModal();
+    loadData();
+  };
+
+  // Удаление транзакции
+  const handleDelete = (id) => {
+    if (!window.confirm('Вы уверены, что хотите удалить эту операцию?')) {
+      return;
+    }
+    
+    // Находим транзакцию, чтобы определить её тип
+    const transaction = recentTransactions.find(t => t.id === id);
+    if (!transaction) return;
+    
+    if (transaction.type === 'income') {
+      deleteIncome(id);
+    } else {
+      deleteExpense(id);
+    }
+    
+    loadData();
+  };
+
   return (
     <div className={styles.dashboard}>
       <h1 className={styles.title}>Главная</h1>
       
       {/* Карточки баланса */}
       <div className={styles.cardsGrid}>
-        <BalanceCardPlaceholder 
+        <BalanceCard 
           title="Доходы за месяц" 
-          amount={0} 
-          color="#10b981" 
+          amount={balance.totalIncome ?? 0} 
+          type="income"
         />
-        <BalanceCardPlaceholder 
+        <BalanceCard 
           title="Расходы за месяц" 
-          amount={0} 
-          color="#ef4444" 
+          amount={balance.totalExpense ?? 0} 
+          type="expense"
         />
-        <BalanceCardPlaceholder 
+        <BalanceCard 
           title="Баланс" 
-          amount={0} 
-          color="#2563eb" 
+          amount={balance.balance ?? 0} 
+          type="balance"
         />
       </div>
       
@@ -64,14 +118,34 @@ function Dashboard() {
       <div className={styles.recentSection}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Последние операции</h2>
-          <button className={styles.addButton}>
+          <button 
+            className={styles.addButton}
+            onClick={handleOpenAdd}
+          >
             <span>+</span>
             <span>Добавить</span>
           </button>
         </div>
         
-        <EmptyStatePlaceholder />
+        <TransactionList 
+          transactions={recentTransactions}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
       </div>
+
+      {/* Модалка с формой */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title={editingTransaction ? 'Редактировать операцию' : 'Новая операция'}
+      >
+        <TransactionForm
+          editData={editingTransaction}
+          onSubmit={handleSubmit}
+          onCancel={handleCloseModal}
+        />
+      </Modal>
     </div>
   );
 }
